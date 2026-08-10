@@ -280,6 +280,7 @@ if(STANDARD_TOOLS_BUILD_INTEGRATION_TESTS)
     target_link_libraries(integration_tests PRIVATE standard_tools_core Catch2::Catch2WithMain)
     target_compile_definitions(integration_tests PRIVATE STANDARD_TOOLS_ENABLE_POSTGRES=1)
     add_test(NAME integration_tests COMMAND integration_tests)
+    set_tests_properties(integration_tests PROPERTIES SKIP_RETURN_CODE 4)
 endif()
 
 if(STANDARD_TOOLS_BUILD_E2E_TESTS)
