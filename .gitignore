@@ -35,3 +35,6 @@ _build/
 config.toml
 
 .worktrees
+
+# CTest metadata
+Testing/
