@@ -33,3 +33,5 @@ _build/
 # Local config
 .env
 config.toml
+
+.worktrees
