@@ -1,0 +1,35 @@
+# Build directories
+build/
+cmake-build-*/
+out/
+
+# Generated
+*.o
+*.a
+*.so
+*.dylib
+*.exe
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Test logs and reports
+test-output.log
+test-integration.log
+act-quality.log
+test-report.html
+test-report-integration.html
+test-report-local.html
+test-report-integration-local.html
+
+# Dependencies fetched by CMake
+_build/
+
+# Local config
+.env
+config.toml

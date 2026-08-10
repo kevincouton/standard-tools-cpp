@@ -1,0 +1,130 @@
+name: CI
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Install dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cmake pkg-config libssl-dev libcurl4-openssl-dev \
+            libpq-dev libpqxx-dev libgrpc++-dev libprotobuf-dev \
+            protobuf-compiler protobuf-compiler-grpc
+          rm -rf /var/lib/apt/lists/*
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build build --parallel $(nproc)
+      - name: Run unit tests
+        run: |
+          set -euo pipefail
+          ctest --test-dir build -R unit_tests --output-on-failure 2>&1 | tee test-output.log
+        id: unit-tests
+      - name: Generate test report
+        run: ./scripts/visual-test-report.sh test-output.log test-report.html
+        if: ${{ !cancelled() && (steps.unit-tests.outcome == 'success' || steps.unit-tests.outcome == 'failure') }}
+      - uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
+        if: ${{ !cancelled() && !env.ACT && (steps.unit-tests.outcome == 'success' || steps.unit-tests.outcome == 'failure') }}
+        with:
+          name: test-report
+          path: test-report.html
+
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: quality
+    permissions:
+      contents: read
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: standard_tools
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      SQT_DATABASE_URL: postgres://postgres:postgres@localhost:5432/standard_tools?sslmode=disable
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Install dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cmake pkg-config libssl-dev libcurl4-openssl-dev \
+            libpq-dev libpqxx-dev libgrpc++-dev libprotobuf-dev \
+            protobuf-compiler protobuf-compiler-grpc
+          rm -rf /var/lib/apt/lists/*
+      - name: Configure with integration tests
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DSTANDARD_TOOLS_BUILD_INTEGRATION_TESTS=ON
+      - name: Build integration tests
+        run: cmake --build build --target integration_tests --parallel $(nproc)
+      - name: Run integration tests
+        run: |
+          set -euo pipefail
+          ctest --test-dir build -R integration_tests --output-on-failure 2>&1 | tee test-integration.log
+        id: integration-tests
+      - name: Generate integration test report
+        run: ./scripts/visual-test-report.sh test-integration.log test-report-integration.html
+        if: ${{ !cancelled() && (steps.integration-tests.outcome == 'success' || steps.integration-tests.outcome == 'failure') }}
+      - uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
+        if: ${{ !cancelled() && !env.ACT && (steps.integration-tests.outcome == 'success' || steps.integration-tests.outcome == 'failure') }}
+        with:
+          name: test-report-integration
+          path: test-report-integration.html
+
+  build-images:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: integration
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Ensure podman is installed
+        run: |
+          set -euo pipefail
+          if ! command -v podman >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y --no-install-recommends podman
+            rm -rf /var/lib/apt/lists/*
+          fi
+      - run: sudo podman build --format docker -f Dockerfile -t standard-tools-cpp:latest .
+      - run: sudo podman build --format docker -f Dockerfile.native -t standard-tools-cpp:native .
+      - name: Smoke test classic image
+        env:
+          ENGINE: sudo podman
+        run: ./scripts/smoke-test-image.sh standard-tools-cpp:latest
+      - name: Smoke test native image
+        env:
+          ENGINE: sudo podman
+        run: ./scripts/smoke-test-image.sh standard-tools-cpp:native

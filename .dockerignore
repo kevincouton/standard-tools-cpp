@@ -1,0 +1,12 @@
+build/
+cmake-build-*/
+out/
+.git/
+.gitignore
+.vscode/
+.idea/
+*.log
+test-report*.html
+.env
+config.toml
+.DS_Store

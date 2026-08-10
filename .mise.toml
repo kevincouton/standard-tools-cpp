@@ -1,0 +1,33 @@
+[tools]
+# CMake is intentionally NOT managed by mise on macOS; use the system cmake or
+# Homebrew. act is used for local CI runs.
+act = "0.2.89"
+
+[tasks]
+configure = "cmake -S . -B build -DCMAKE_BUILD_TYPE=Release"
+configure-all = "cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DSTANDARD_TOOLS_BUILD_INTEGRATION_TESTS=ON -DSTANDARD_TOOLS_BUILD_E2E_TESTS=ON"
+build = "cmake --build build --parallel $(nproc 2>/dev/null || sysctl -n hw.ncpu)"
+rebuild = "cmake --build build --parallel $(nproc 2>/dev/null || sysctl -n hw.ncpu) --clean-first"
+
+test = """
+bash -o pipefail -c 'ctest --test-dir build --output-on-failure 2>&1 | tee test-output.log; test_exit=${PIPESTATUS[0]}; ./scripts/visual-test-report.sh test-output.log test-report.html || true; exit $test_exit'
+"""
+
+test-unit = "ctest --test-dir build -R unit_tests --output-on-failure"
+test-integration = """
+bash -o pipefail -c 'ctest --test-dir build -R integration_tests --output-on-failure 2>&1 | tee test-integration.log; test_exit=${PIPESTATUS[0]}; ./scripts/visual-test-report.sh test-integration.log test-report-integration.html || true; exit $test_exit'
+"""
+test-e2e = "ctest --test-dir build -R e2e_tests --output-on-failure"
+
+fmt = "find src tests -name '*.cpp' -o -name '*.hpp' | xargs clang-format -i"
+lint = "cmake --build build --target standard_tools_core >/dev/null && true"
+run = "./build/server"
+run-cli = "./build/cli"
+
+image = "podman build --format docker -f Dockerfile -t standard-tools-cpp:latest ."
+image-native = "podman build --format docker -f Dockerfile.native -t standard-tools-cpp:native ."
+smoke = "./scripts/smoke-test-image.sh standard-tools-cpp:latest"
+smoke-native = "./scripts/smoke-test-image.sh standard-tools-cpp:native"
+
+act = "./scripts/run-act-local.sh"
+audit-verify = "./build/cli verify"
