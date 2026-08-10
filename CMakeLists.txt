@@ -151,9 +151,10 @@ if(STANDARD_TOOLS_ENABLE_GRPC)
         message(FATAL_ERROR "grpc_cpp_plugin not found")
     endif()
 
-    if(gRPC_FOUND)
-        find_package(protobuf CONFIG REQUIRED)
-    else()
+    # Prefer protobuf CMake config, but fall back to the FindProtobuf module
+    # (used by Ubuntu/Debian packages).
+    find_package(protobuf CONFIG QUIET)
+    if(NOT protobuf_FOUND AND NOT Protobuf_FOUND)
         find_package(Protobuf REQUIRED)
     endif()
 
@@ -161,13 +162,21 @@ if(STANDARD_TOOLS_ENABLE_GRPC)
     set(PROTO_GEN_DIR ${CMAKE_CURRENT_BINARY_DIR}/generated)
     file(MAKE_DIRECTORY ${PROTO_GEN_DIR})
 
+    if(TARGET protobuf::protoc)
+        set(PROTOC_EXECUTABLE protobuf::protoc)
+    elseif(TARGET protobuf::libprotobuf)
+        set(PROTOC_EXECUTABLE protobuf::protoc)
+    else()
+        find_program(PROTOC_EXECUTABLE protoc REQUIRED)
+    endif()
+
     add_custom_command(
         OUTPUT
             ${PROTO_GEN_DIR}/health.pb.cc
             ${PROTO_GEN_DIR}/health.pb.h
             ${PROTO_GEN_DIR}/health.grpc.pb.cc
             ${PROTO_GEN_DIR}/health.grpc.pb.h
-        COMMAND protobuf::protoc
+        COMMAND ${PROTOC_EXECUTABLE}
             --grpc_out=${PROTO_GEN_DIR}
             --cpp_out=${PROTO_GEN_DIR}
             -I ${CMAKE_CURRENT_SOURCE_DIR}/proto
@@ -183,6 +192,8 @@ if(STANDARD_TOOLS_ENABLE_GRPC)
     target_include_directories(standard_tools_proto PUBLIC ${PROTO_GEN_DIR})
     if(gRPC_FOUND)
         target_link_libraries(standard_tools_proto PUBLIC gRPC::grpc++ protobuf::libprotobuf)
+    elseif(TARGET protobuf::libprotobuf)
+        target_link_libraries(standard_tools_proto PUBLIC ${GRPC_LIBRARIES} protobuf::libprotobuf)
     else()
         target_include_directories(standard_tools_proto PUBLIC ${PROTOBUF_INCLUDE_DIRS} ${GRPC_INCLUDE_DIRS})
         target_link_libraries(standard_tools_proto PUBLIC ${PROTOBUF_LIBRARIES} ${GRPC_LIBRARIES})
