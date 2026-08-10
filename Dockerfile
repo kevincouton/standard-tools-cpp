@@ -39,7 +39,20 @@ RUN mkdir -p /empty/tmp /empty/app && \
     useradd -u 65532 -r -s /usr/sbin/nologin nonroot || true && \
     chown -R 65532:65532 /empty
 
-FROM gcr.io/distroless/cc-debian12:nonroot
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        libssl3 \
+        libcurl4t64 \
+        libpq5 \
+        libpqxx-7.8t64 \
+        libgrpc++1.51t64 \
+        libprotobuf32t64 \
+    && useradd -u 65532 -r -s /usr/sbin/nologin nonroot \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder --chown=nonroot:nonroot /src/build/server /usr/local/bin/server
 COPY --from=builder --chown=nonroot:nonroot /src/build/cli /usr/local/bin/cli

@@ -56,7 +56,15 @@ void PostgresStorage::Append(const DecisionRecord& record) {
                 request_id, recorded_at, tool_name, input_hash, output_hash,
                 status, error, git_commit_sha, package_version, random_seed,
                 prev_record_hash, record_hash, input_json, output_json, raw
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+            ) VALUES (
+                $1, $2, $3, $4, $5, $6,
+                NULLIF($7, ''),
+                NULLIF($8, ''),
+                NULLIF($9, ''),
+                $10,
+                NULLIF($11, ''),
+                $12, $13, $14, $15
+            )
         )",
         record.request_id,
         FormatTimestamp(record.recorded_at),
@@ -64,11 +72,11 @@ void PostgresStorage::Append(const DecisionRecord& record) {
         record.input_hash,
         record.output_hash,
         record.status,
-        record.error.empty() ? std::optional<std::string>{} : std::optional{record.error},
-        record.git_commit_sha.empty() ? std::optional<std::string>{} : std::optional{record.git_commit_sha},
-        record.package_version.empty() ? std::optional<std::string>{} : std::optional{record.package_version},
+        record.error,
+        record.git_commit_sha,
+        record.package_version,
         record.random_seed,
-        record.prev_record_hash.empty() ? std::optional<std::string>{} : std::optional{record.prev_record_hash},
+        record.prev_record_hash,
         record.record_hash,
         record.input.dump(),
         record.output.dump(),
