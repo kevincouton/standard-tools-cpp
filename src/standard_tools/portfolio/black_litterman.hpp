@@ -3,10 +3,13 @@
 #include "standard_tools/portfolio/result.hpp"
 
 #include <map>
+#include <nlohmann/json.hpp>
 #include <string>
 #include <vector>
 
 namespace standard_tools::portfolio {
+
+using json = nlohmann::json;
 
 /// Request for the canonical Black-Litterman model with explicit view matrices.
 struct BlackLittermanRequest {
@@ -82,5 +85,12 @@ BlackLittermanResult BlackLitterman(const BlackLittermanRequest& request);
 /// \throws InternalError if any matrix inversion fails.
 BlackLittermanResult BlackLittermanSimplified(
     const BlackLittermanSimplifiedRequest& request);
+
+inline void to_json(json& j, const BlackLittermanResult& r) {
+    j = json::object();
+    j["portfolio"] = r.portfolio;
+    j["expected_returns"] = r.expected_returns;
+    j["covariance"] = r.covariance;
+}
 
 }  // namespace standard_tools::portfolio

@@ -1,12 +1,17 @@
 #include "standard_tools/agent/dispatcher.hpp"
+#include "standard_tools/analysis/calculator.hpp"
 #include "standard_tools/api/a2a.hpp"
 #include "standard_tools/api/mcp.hpp"
 #include "standard_tools/api/rest.hpp"
 #include "standard_tools/api/state.hpp"
 #include "standard_tools/audit/storage.hpp"
 #include "standard_tools/audit/writer.hpp"
+#include "standard_tools/indicators/calculator.hpp"
 #include "standard_tools/marketdata/service.hpp"
 #include "standard_tools/marketdata/synthetic.hpp"
+#include "standard_tools/metrics/risk_return.hpp"
+#include "standard_tools/screener/hardcoded_provider.hpp"
+#include "standard_tools/screener/service.hpp"
 
 #include <catch2/catch_test_macros.hpp>
 #include <crow.h>
@@ -80,10 +85,22 @@ struct ServerFixture {
         auto market_svc = std::make_shared<marketdata::Service>("synthetic", cache);
         market_svc->Register(std::make_shared<marketdata::SyntheticProvider>());
 
+        auto indicators = std::make_shared<standard_tools::indicators::IndicatorCalculator>();
+        auto metrics_calc = std::make_shared<standard_tools::metrics::RiskReturnCalculator>();
+        auto analysis_calc = std::make_shared<standard_tools::analysis::AnalysisCalculator>();
+        auto screener = std::make_shared<standard_tools::screener::Screener>(
+            std::make_shared<standard_tools::screener::HardcodedFundamentalProvider>());
+        auto dispatcher = std::make_shared<agent::Dispatcher>(
+            market_svc, indicators, metrics_calc, analysis_calc, screener);
+
         state = std::make_shared<AppState>(AppState{
-            .dispatcher = std::make_shared<agent::Dispatcher>(market_svc),
+            .dispatcher = dispatcher,
             .market_data = market_svc,
             .audit_writer = std::make_shared<audit::Writer>(std::make_shared<audit::MemoryStorage>()),
+            .indicators = indicators,
+            .metrics = metrics_calc,
+            .analysis = analysis_calc,
+            .screener = screener,
         });
 
         app = std::make_shared<crow::App<>>();
@@ -143,4 +160,71 @@ TEST_CASE("Server health and agent endpoints", "[e2e]") {
     auto [mcp_code, mcp_body] = HttpGet(base + "/mcp/capabilities");
     REQUIRE(mcp_code == 200);
     REQUIRE(mcp_body.find("protocolVersion") != std::string::npos);
+}
+
+TEST_CASE("Indicators route", "[e2e]") {
+    ServerFixture fixture;
+    std::string base = "http://127.0.0.1:" + std::to_string(fixture.port);
+
+    auto [code, body] = HttpGet(
+        base + "/api/v1/indicators/sma?ticker=AAPL&start=2024-01-01&end=2024-02-01&period=10");
+    REQUIRE(code == 200);
+    REQUIRE(body.find("\"name\"") != std::string::npos);
+    REQUIRE(body.find("\"values\"") != std::string::npos);
+}
+
+TEST_CASE("Metrics risk route", "[e2e]") {
+    ServerFixture fixture;
+    std::string base = "http://127.0.0.1:" + std::to_string(fixture.port);
+
+    auto [code, body] = HttpGet(
+        base + "/api/v1/metrics/risk?ticker=AAPL&start=2024-01-01&end=2024-02-01");
+    REQUIRE(code == 200);
+    REQUIRE(body.find("\"volatility\"") != std::string::npos);
+}
+
+TEST_CASE("Analysis regression route", "[e2e]") {
+    ServerFixture fixture;
+    std::string base = "http://127.0.0.1:" + std::to_string(fixture.port);
+
+    auto [code, body] = HttpPost(
+        base + "/api/v1/analysis/regression",
+        R"({"asset_returns":[0.01,0.02,-0.01,0.005],"benchmark_returns":[0.005,0.015,-0.005,0.0]})");
+    REQUIRE(code == 200);
+    REQUIRE(body.find("\"alpha\"") != std::string::npos);
+    REQUIRE(body.find("\"beta\"") != std::string::npos);
+}
+
+TEST_CASE("Backtest route", "[e2e]") {
+    ServerFixture fixture;
+    std::string base = "http://127.0.0.1:" + std::to_string(fixture.port);
+
+    auto [code, body] = HttpPost(
+        base + "/api/v1/backtest/buy_and_hold",
+        R"({"ticker":"AAPL","start":"2024-01-01","end":"2024-02-01"})");
+    REQUIRE(code == 200);
+    REQUIRE(body.find("\"final_equity\"") != std::string::npos);
+    REQUIRE(body.find("\"trades\"") != std::string::npos);
+}
+
+TEST_CASE("Portfolio optimize route", "[e2e]") {
+    ServerFixture fixture;
+    std::string base = "http://127.0.0.1:" + std::to_string(fixture.port);
+
+    auto [code, body] = HttpPost(
+        base + "/api/v1/portfolio/optimize",
+        R"({"returns":[[0.01,0.02,-0.01],[0.005,0.015,-0.005]],"labels":["A","B"]})");
+    REQUIRE(code == 200);
+    REQUIRE(body.find("\"weights\"") != std::string::npos);
+}
+
+TEST_CASE("Screen route", "[e2e]") {
+    ServerFixture fixture;
+    std::string base = "http://127.0.0.1:" + std::to_string(fixture.port);
+
+    auto [code, body] = HttpPost(
+        base + "/api/v1/screen",
+        R"({"tickers":["AAPL","MSFT","TSLA"],"criteria":{"pe_ratio_max":30.0}})");
+    REQUIRE(code == 200);
+    REQUIRE(body.find("\"matches\"") != std::string::npos);
 }

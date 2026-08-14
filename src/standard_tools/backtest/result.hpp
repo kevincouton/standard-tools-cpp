@@ -4,12 +4,15 @@
 
 #include <chrono>
 #include <cstddef>
+#include <nlohmann/json.hpp>
 #include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
 namespace standard_tools::backtest {
+
+using json = nlohmann::json;
 
 /// A single point on the equity curve.
 struct EquityPoint {
@@ -110,5 +113,81 @@ enum class OptimizationMetric {
     Sharpe,
     WinRate,
 };
+
+inline std::string ToString(TradeSide side) {
+    switch (side) {
+        case TradeSide::Long:
+            return "long";
+        case TradeSide::Short:
+            return "short";
+    }
+    return "unknown";
+}
+
+inline void to_json(json& j, const EquityPoint& p) {
+    j = json::object();
+    j["date"] = core::FormatDate(p.date);
+    j["equity"] = p.equity;
+}
+
+inline void to_json(json& j, const Trade& t) {
+    j = json::object();
+    j["entry_date"] = core::FormatDate(t.entry_date);
+    j["exit_date"] = core::FormatDate(t.exit_date);
+    j["entry_price"] = t.entry_price;
+    j["exit_price"] = t.exit_price;
+    j["quantity"] = t.quantity;
+    j["side"] = ToString(t.side);
+    j["pnl"] = t.pnl;
+}
+
+inline void to_json(json& j, const Metrics& m) {
+    j = json::object();
+    j["max_drawdown"] = m.max_drawdown;
+    j["sharpe"] = m.sharpe.has_value() ? json(*m.sharpe) : json(nullptr);
+    j["win_rate"] = m.win_rate;
+    j["trade_count"] = m.trade_count;
+}
+
+inline void to_json(json& j, const BacktestResult& r) {
+    j = json::object();
+    j["final_equity"] = r.final_equity;
+    j["total_return"] = r.total_return;
+    j["equity_curve"] = r.equity_curve;
+    j["trades"] = r.trades;
+    j["metrics"] = r.metrics;
+}
+
+inline void to_json(json& j, const ConfidenceInterval& ci) {
+    j = json::object();
+    j["lower"] = ci.lower;
+    j["upper"] = ci.upper;
+}
+
+inline void to_json(json& j, const MonteCarloResult& r) {
+    j = json::object();
+    j["simulations"] = r.simulations;
+    j["final_equity_ci"] = r.final_equity_ci;
+    j["max_drawdown_ci"] = r.max_drawdown_ci;
+    j["initial_capital"] = r.initial_capital;
+}
+
+inline void to_json(json& j, const ParamWindow& w) {
+    j = json::object();
+    j["start"] = core::FormatDate(w.start);
+    j["params"] = w.params;
+}
+
+inline void to_json(json& j, const WalkForwardResult& r) {
+    j = json::object();
+    j["equity_curve"] = r.equity_curve;
+    j["trades"] = r.trades;
+    j["total_return"] = r.total_return;
+    j["max_drawdown"] = r.max_drawdown;
+    j["sharpe"] = r.sharpe.has_value() ? json(*r.sharpe) : json(nullptr);
+    j["number_of_trades"] = r.number_of_trades;
+    j["win_rate"] = r.win_rate;
+    j["selected_params"] = r.selected_params;
+}
 
 }  // namespace standard_tools::backtest

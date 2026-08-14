@@ -4,10 +4,13 @@
 
 #include <cmath>
 #include <map>
+#include <nlohmann/json.hpp>
 #include <string>
 #include <utility>
 
 namespace standard_tools::portfolio {
+
+using json = nlohmann::json;
 
 /// Result of a portfolio optimization.
 struct PortfolioResult {
@@ -57,5 +60,13 @@ struct PortfolioResult {
         }
     }
 };
+
+inline void to_json(json& j, const PortfolioResult& r) {
+    j = json::object();
+    j["weights"] = r.weights;
+    j["expected_return"] = r.expected_return;
+    j["volatility"] = r.volatility;
+    j["sharpe_ratio"] = r.sharpe_ratio;
+}
 
 }  // namespace standard_tools::portfolio

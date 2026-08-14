@@ -1,6 +1,10 @@
 #pragma once
 
+#include <nlohmann/json.hpp>
+
 namespace standard_tools::metrics {
+
+using json = nlohmann::json;
 
 /// Return metrics computed from a price series.
 struct ReturnMetrics {
@@ -39,5 +43,23 @@ struct RiskMetrics {
     /// Annualized volatility, identical to ReturnMetrics::annualized_volatility.
     double volatility = 0.0;
 };
+
+inline void to_json(json& j, const ReturnMetrics& m) {
+    j = json::object();
+    j["cumulative_return"] = m.cumulative_return;
+    j["cagr"] = m.cagr;
+    j["annualized_volatility"] = m.annualized_volatility;
+}
+
+inline void to_json(json& j, const RiskMetrics& m) {
+    j = json::object();
+    j["sharpe_ratio"] = m.sharpe_ratio;
+    j["sortino_ratio"] = m.sortino_ratio;
+    j["max_drawdown"] = m.max_drawdown;
+    j["calmar_ratio"] = m.calmar_ratio;
+    j["var_95"] = m.var_95;
+    j["cvar_95"] = m.cvar_95;
+    j["volatility"] = m.volatility;
+}
 
 }  // namespace standard_tools::metrics

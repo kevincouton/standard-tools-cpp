@@ -50,6 +50,15 @@ inline ToolResult ErrorResult(const std::string& message) {
 constexpr const char* ToolHealth = "health";
 constexpr const char* ToolListTools = "list_tools";
 constexpr const char* ToolFetchOhlcv = "fetch_ohlcv";
+constexpr const char* ToolCalculateIndicator = "calculate_indicator";
+constexpr const char* ToolCalculateReturnMetrics = "calculate_return_metrics";
+constexpr const char* ToolCalculateRiskMetrics = "calculate_risk_metrics";
+constexpr const char* ToolRunAnalysis = "run_analysis";
+constexpr const char* ToolRunBacktest = "run_backtest";
+constexpr const char* ToolOptimizePortfolio = "optimize_portfolio";
+constexpr const char* ToolRiskParityPortfolio = "risk_parity";
+constexpr const char* ToolBlackLittermanPortfolio = "black_litterman";
+constexpr const char* ToolScreenStocks = "screen_stocks";
 
 std::vector<ToolDefinition> ListTools();
 std::optional<ToolDefinition> FindTool(const std::string& name);

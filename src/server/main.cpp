@@ -1,4 +1,5 @@
 #include "standard_tools/agent/dispatcher.hpp"
+#include "standard_tools/analysis/calculator.hpp"
 #include "standard_tools/api/a2a.hpp"
 #include "standard_tools/api/mcp.hpp"
 #include "standard_tools/api/rest.hpp"
@@ -6,8 +7,12 @@
 #include "standard_tools/audit/storage.hpp"
 #include "standard_tools/audit/writer.hpp"
 #include "standard_tools/config/config.hpp"
+#include "standard_tools/indicators/calculator.hpp"
 #include "standard_tools/marketdata/service.hpp"
 #include "standard_tools/marketdata/synthetic.hpp"
+#include "standard_tools/metrics/risk_return.hpp"
+#include "standard_tools/screener/hardcoded_provider.hpp"
+#include "standard_tools/screener/service.hpp"
 
 #ifdef STANDARD_TOOLS_ENABLE_GRPC
 #include "standard_tools/api/grpc_server.hpp"
@@ -75,10 +80,22 @@ int main(int argc, char* argv[]) {
     auto market_svc = std::make_shared<marketdata::Service>("synthetic", cache);
     market_svc->Register(std::make_shared<marketdata::SyntheticProvider>());
 
+    auto indicators = std::make_shared<indicators::IndicatorCalculator>();
+    auto metrics_calc = std::make_shared<metrics::RiskReturnCalculator>();
+    auto analysis_calc = std::make_shared<analysis::AnalysisCalculator>();
+    auto screener = std::make_shared<screener::Screener>(
+        std::make_shared<screener::HardcodedFundamentalProvider>());
+    auto dispatcher = std::make_shared<agent::Dispatcher>(
+        market_svc, indicators, metrics_calc, analysis_calc, screener);
+
     api::AppState state{
-        .dispatcher = std::make_shared<agent::Dispatcher>(market_svc),
+        .dispatcher = dispatcher,
         .market_data = market_svc,
         .audit_writer = std::make_shared<audit::Writer>(audit_storage),
+        .indicators = indicators,
+        .metrics = metrics_calc,
+        .analysis = analysis_calc,
+        .screener = screener,
     };
 
     crow::App<> app;
