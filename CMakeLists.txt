@@ -131,6 +131,9 @@ set(CORE_SOURCES
     src/standard_tools/config/config.cpp
     src/standard_tools/metrics/risk_return.cpp
     src/standard_tools/analysis/calculator.cpp
+    src/standard_tools/screener/criteria.cpp
+    src/standard_tools/screener/hardcoded_provider.cpp
+    src/standard_tools/screener/service.cpp
 )
 
 set(API_SOURCES
@@ -275,6 +278,7 @@ set(UNIT_TEST_SOURCES
     tests/unit/agent/test_dispatcher.cpp
     tests/unit/metrics/test_metrics.cpp
     tests/unit/analysis/test_analysis.cpp
+    tests/unit/screener/test_screener.cpp
 )
 
 add_executable(unit_tests ${UNIT_TEST_SOURCES})
