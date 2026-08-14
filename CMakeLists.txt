@@ -125,10 +125,12 @@ set(CORE_SOURCES
     src/standard_tools/marketdata/cache.cpp
     src/standard_tools/marketdata/synthetic.cpp
     src/standard_tools/marketdata/service.cpp
+    src/standard_tools/indicators/calculator.cpp
     src/standard_tools/agent/tool.cpp
     src/standard_tools/agent/dispatcher.cpp
     src/standard_tools/config/config.cpp
     src/standard_tools/metrics/risk_return.cpp
+    src/standard_tools/analysis/calculator.cpp
 )
 
 set(API_SOURCES
@@ -268,9 +270,11 @@ enable_testing()
 set(UNIT_TEST_SOURCES
     tests/unit/core/test_value_objects.cpp
     tests/unit/marketdata/test_synthetic.cpp
+    tests/unit/indicators/test_indicators.cpp
     tests/unit/audit/test_audit.cpp
     tests/unit/agent/test_dispatcher.cpp
     tests/unit/metrics/test_metrics.cpp
+    tests/unit/analysis/test_analysis.cpp
 )
 
 add_executable(unit_tests ${UNIT_TEST_SOURCES})
