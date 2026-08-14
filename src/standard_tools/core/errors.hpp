@@ -47,4 +47,14 @@ public:
     explicit InternalError(const std::string& msg) : Error("internal error: " + msg) {}
 };
 
+class InsufficientDataError : public Error {
+public:
+    explicit InsufficientDataError(const std::string& msg) : Error("insufficient data: " + msg) {}
+};
+
+class InvalidPricesError : public Error {
+public:
+    explicit InvalidPricesError(const std::string& msg) : Error("invalid prices: " + msg) {}
+};
+
 }  // namespace standard_tools::core

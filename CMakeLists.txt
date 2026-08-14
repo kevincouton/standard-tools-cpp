@@ -128,6 +128,7 @@ set(CORE_SOURCES
     src/standard_tools/agent/tool.cpp
     src/standard_tools/agent/dispatcher.cpp
     src/standard_tools/config/config.cpp
+    src/standard_tools/metrics/risk_return.cpp
 )
 
 set(API_SOURCES
@@ -269,6 +270,7 @@ set(UNIT_TEST_SOURCES
     tests/unit/marketdata/test_synthetic.cpp
     tests/unit/audit/test_audit.cpp
     tests/unit/agent/test_dispatcher.cpp
+    tests/unit/metrics/test_metrics.cpp
 )
 
 add_executable(unit_tests ${UNIT_TEST_SOURCES})
