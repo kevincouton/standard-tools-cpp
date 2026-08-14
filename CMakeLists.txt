@@ -126,6 +126,10 @@ set(CORE_SOURCES
     src/standard_tools/marketdata/synthetic.cpp
     src/standard_tools/marketdata/service.cpp
     src/standard_tools/indicators/calculator.cpp
+    src/standard_tools/backtest/strategy.cpp
+    src/standard_tools/backtest/engine.cpp
+    src/standard_tools/backtest/monte_carlo.cpp
+    src/standard_tools/backtest/walk_forward.cpp
     src/standard_tools/agent/tool.cpp
     src/standard_tools/agent/dispatcher.cpp
     src/standard_tools/config/config.cpp
@@ -282,6 +286,7 @@ set(UNIT_TEST_SOURCES
     tests/unit/metrics/test_metrics.cpp
     tests/unit/analysis/test_analysis.cpp
     tests/unit/screener/test_screener.cpp
+    tests/unit/backtest/test_backtest.cpp
     tests/unit/portfolio/test_portfolio.cpp
 )
 
