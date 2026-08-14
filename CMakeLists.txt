@@ -134,6 +134,9 @@ set(CORE_SOURCES
     src/standard_tools/screener/criteria.cpp
     src/standard_tools/screener/hardcoded_provider.cpp
     src/standard_tools/screener/service.cpp
+    src/standard_tools/portfolio/optimizer.cpp
+    src/standard_tools/portfolio/risk_parity.cpp
+    src/standard_tools/portfolio/black_litterman.cpp
 )
 
 set(API_SOURCES
@@ -279,6 +282,7 @@ set(UNIT_TEST_SOURCES
     tests/unit/metrics/test_metrics.cpp
     tests/unit/analysis/test_analysis.cpp
     tests/unit/screener/test_screener.cpp
+    tests/unit/portfolio/test_portfolio.cpp
 )
 
 add_executable(unit_tests ${UNIT_TEST_SOURCES})
