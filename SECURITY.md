@@ -13,6 +13,5 @@ We will acknowledge receipt within 48 hours and aim to provide a fix or mitigati
 ## Security Practices
 
 - Secrets and credentials are loaded from environment variables, never committed to source.
-- Production images run as non-root users.
-- TLS and authentication are enabled by default in production deployments.
-- Dependencies are kept up to date and scanned in CI.
+
+> **Note:** Authentication and TLS termination are not yet implemented in this repository. Deploy behind a reverse proxy that provides TLS and access control. Dependency scanning is not yet wired into CI.
