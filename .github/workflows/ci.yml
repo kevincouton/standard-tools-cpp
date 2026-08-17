@@ -28,7 +28,6 @@ jobs:
             build-essential cmake pkg-config libssl-dev libcurl4-openssl-dev \
             libpq-dev libpqxx-dev libgrpc++-dev libprotobuf-dev \
             protobuf-compiler protobuf-compiler-grpc
-          rm -rf /var/lib/apt/lists/*
       - name: Configure
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
       - name: Build
@@ -81,7 +80,6 @@ jobs:
             build-essential cmake pkg-config libssl-dev libcurl4-openssl-dev \
             libpq-dev libpqxx-dev libgrpc++-dev libprotobuf-dev \
             protobuf-compiler protobuf-compiler-grpc
-          rm -rf /var/lib/apt/lists/*
       - name: Configure with integration tests
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DSTANDARD_TOOLS_BUILD_INTEGRATION_TESTS=ON
       - name: Build integration tests
@@ -116,8 +114,7 @@ jobs:
           if ! command -v podman >/dev/null 2>&1; then
             sudo apt-get update
             sudo apt-get install -y --no-install-recommends podman
-            rm -rf /var/lib/apt/lists/*
-          fi
+            fi
       - run: sudo podman build --format docker -f Dockerfile -t standard-tools-cpp:latest .
       - run: sudo podman build --format docker -f Dockerfile.native -t standard-tools-cpp:native .
       - name: Smoke test classic image
