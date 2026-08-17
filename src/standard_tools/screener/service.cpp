@@ -2,12 +2,29 @@
 
 #include "standard_tools/core/errors.hpp"
 
+#include <cstddef>
+#include <sstream>
+#include <string>
+#include <vector>
+
 namespace standard_tools::screener {
+
+namespace {
+
+constexpr std::size_t kMaxScreenTickers = 500;
+
+}  // namespace
 
 Screener::Screener(FundamentalProviderPtr provider) : provider_(std::move(provider)) {}
 
 ScreenResult Screener::Screen(const std::vector<std::string>& tickers,
                               const ScreenCriteria& criteria) const {
+    if (tickers.size() > kMaxScreenTickers) {
+        std::ostringstream oss;
+        oss << "ticker count " << tickers.size() << " exceeds maximum of "
+            << kMaxScreenTickers;
+        throw core::InvalidCommandError{oss.str()};
+    }
     ScreenResult result;
     for (const auto& ticker : tickers) {
         try {

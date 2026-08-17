@@ -55,7 +55,12 @@ double Percentile(const std::vector<double>& values, double quantile) {
 }  // namespace
 
 MonteCarloSimulator::MonteCarloSimulator(int simulations, std::optional<std::uint64_t> seed)
-    : simulations_(simulations < 0 ? 0 : simulations), seed_(seed) {}
+    : simulations_(simulations < 0 ? 0 : simulations), seed_(seed) {
+    constexpr int kMaxMonteCarloSimulations = 100'000;
+    if (simulations_ > kMaxMonteCarloSimulations) {
+        simulations_ = kMaxMonteCarloSimulations;
+    }
+}
 
 MonteCarloResult MonteCarloSimulator::FromTrades(
     const std::vector<Trade>& trades, double initial_capital) const {

@@ -13,6 +13,8 @@ namespace {
 
 std::vector<std::unordered_map<std::string, double>> BuildParamCombinations(
     const std::unordered_map<std::string, std::vector<double>>& grid) {
+    constexpr std::size_t kMaxWalkForwardCombinations = 10'000;
+
     std::vector<std::string> keys;
     keys.reserve(grid.size());
     for (const auto& kv : grid) {
@@ -37,6 +39,11 @@ std::vector<std::unordered_map<std::string, double>> BuildParamCombinations(
             }
         }
         combinations = std::move(next);
+        if (combinations.size() > kMaxWalkForwardCombinations) {
+            throw core::InvalidCommandError{
+                "parameter grid produces more than " +
+                std::to_string(kMaxWalkForwardCombinations) + " combinations"};
+        }
     }
 
     return combinations;
@@ -184,9 +191,14 @@ WalkForwardResult CombineResults(
 
 WalkForwardOptimizer::WalkForwardOptimizer(WalkForwardRequest request)
     : request_(std::move(request)) {
+    constexpr std::size_t kMaxWalkForwardWindow = 10'000;
     BacktestEngine engine(request_.strategy, request_.config);
     if (request_.train_size == 0 || request_.test_size == 0) {
         throw core::InvalidCommandError{"train and test sizes must be positive"};
+    }
+    if (request_.train_size > kMaxWalkForwardWindow || request_.test_size > kMaxWalkForwardWindow) {
+        throw core::InvalidCommandError{
+            "train and test sizes must be <= " + std::to_string(kMaxWalkForwardWindow)};
     }
     if (request_.param_grid.empty()) {
         throw core::InvalidCommandError{"walk-forward requires a non-empty parameter grid"};

@@ -9,11 +9,25 @@
 #include <nlohmann/json.hpp>
 
 #include <optional>
+#include <random>
 #include <string>
 
 namespace standard_tools::api {
 
 using json = nlohmann::json;
+
+namespace {
+
+inline std::int64_t ProcessRandomSeed() {
+    static const std::int64_t seed = []() {
+        std::random_device rd;
+        std::uniform_int_distribution<std::int64_t> dist(1, std::numeric_limits<std::int64_t>::max());
+        return dist(rd);
+    }();
+    return seed;
+}
+
+}  // namespace
 
 struct ToolCallRequest {
     std::string tool;
@@ -60,6 +74,9 @@ inline void RecordAudit(
     rec.output = output;
     rec.status = error ? "error" : "ok";
     if (error) rec.error = *error;
+    rec.git_commit_sha = STANDARD_TOOLS_GIT_COMMIT;
+    rec.package_version = STANDARD_TOOLS_VERSION;
+    rec.random_seed = ProcessRandomSeed();
     state.audit_writer->Write(std::move(rec));
 }
 

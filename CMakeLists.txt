@@ -1,6 +1,22 @@
 cmake_minimum_required(VERSION 3.25)
 project(standard-tools-cpp VERSION 0.1.0 LANGUAGES CXX)
 
+# Capture build provenance for audit records.
+execute_process(
+    COMMAND git rev-parse --short HEAD
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    OUTPUT_VARIABLE STANDARD_TOOLS_GIT_COMMIT
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+)
+if(NOT STANDARD_TOOLS_GIT_COMMIT)
+    set(STANDARD_TOOLS_GIT_COMMIT "unknown")
+endif()
+add_compile_definitions(
+    STANDARD_TOOLS_GIT_COMMIT="${STANDARD_TOOLS_GIT_COMMIT}"
+    STANDARD_TOOLS_VERSION="${PROJECT_VERSION}"
+)
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)

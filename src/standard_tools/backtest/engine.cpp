@@ -198,8 +198,13 @@ BacktestEngine::BacktestEngine(std::unique_ptr<Strategy> strategy, BacktestConfi
 BacktestResult BacktestEngine::Run(
     const std::vector<core::OHLCV>& series,
     const std::unordered_map<std::string, double>& params) const {
+    constexpr std::size_t kMaxBacktestBars = 50'000;
     if (series.empty()) {
         throw core::InvalidCommandError{"backtest requires a non-empty price series"};
+    }
+    if (series.size() > kMaxBacktestBars) {
+        throw core::InvalidCommandError{
+            "backtest series exceeds maximum of " + std::to_string(kMaxBacktestBars) + " bars"};
     }
 
     auto signals = strategy_->Signals(series, params);

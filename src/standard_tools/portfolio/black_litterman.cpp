@@ -20,10 +20,17 @@ constexpr double kInversePivotEps = 1e-15;
 
 bool IsFinite(double v) { return std::isfinite(v); }
 
+constexpr std::size_t kMaxAssets = 100;
+
 void ValidateReturnMatrix(const std::vector<std::vector<double>>& returns,
                           const std::vector<std::string>& labels) {
     if (returns.empty()) {
         throw core::DataQualityError{"returns matrix must contain at least one series"};
+    }
+    if (returns.size() > kMaxAssets) {
+        std::ostringstream oss;
+        oss << "asset count " << returns.size() << " exceeds maximum of " << kMaxAssets;
+        throw core::InvalidCommandError{oss.str()};
     }
     if (labels.size() != returns.size()) {
         std::ostringstream oss;
