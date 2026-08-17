@@ -9,12 +9,12 @@ trails, agent tool dispatch, and PostgreSQL persistence.
 - **Core domain models**: `Ticker`, `DateRange`, `BarInterval`, `OHLCV`, `TickerInfo`, `FinancialRatios`, `DataSetMetadata`.
 - **Market data**: provider interface, in-memory cache, synthetic provider, and service.
 - **Audit**: hash-chained `DecisionRecord`, in-memory and PostgreSQL storage, verifier, and replay.
-- **Agent**: tool registry and dispatcher with `health`, `list_tools`, and `fetch_ohlcv` tools.
+- **Agent**: tool registry and dispatcher with 11 quant tools (`health`, `list_tools`, `fetch_ohlcv`, `calculate_indicator`, `calculate_return_metrics`, `calculate_risk_metrics`, `run_analysis`, `run_backtest`, `optimize_portfolio`, `risk_parity`, `black_litterman`, `screen_stocks`).
 - **API**: Crow-based REST routes, A2A and MCP skeleton endpoints, gRPC health service.
 - **Storage**: libpqxx PostgreSQL pool with embedded schema migrations.
 - **CLI**: `verify`, `report`, `replay`, `keygen`, `anchor` commands.
 - **Tests**: Catch2 unit tests, integration tests gated by a CMake flag, and E2E tests that spawn the server.
-- **Containers**: classic `Dockerfile` and `Dockerfile.native` (static/scratch attempt).
+- **Containers**: classic `Dockerfile` and `Dockerfile.native` (Ubuntu-based multi-stage, non-root user).
 - **Local CI**: `act` + `podman` via `scripts/run-act-local.sh`.
 - **Task runner**: `mise.toml` tasks for configure, build, test, image, and smoke.
 

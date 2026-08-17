@@ -14,4 +14,4 @@ We will acknowledge receipt within 48 hours and aim to provide a fix or mitigati
 
 - Secrets and credentials are loaded from environment variables, never committed to source.
 
-> **Note:** Authentication and TLS termination are not yet implemented in this repository. Deploy behind a reverse proxy that provides TLS and access control. Dependency scanning is not yet wired into CI.
+> **Note:** API-key authentication is implemented for REST, A2A, and MCP and is enabled by default (`SQT_AUTH_ENABLED=true`). gRPC does not yet have an auth interceptor. TLS termination and dependency scanning are not yet implemented. Deploy behind a reverse proxy that provides TLS.
