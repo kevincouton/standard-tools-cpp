@@ -13,7 +13,7 @@ constexpr const char* kMcpProtocolVersion = "2024-11-05";
 
 }  // namespace
 
-crow::App<>& RegisterMCPRoutes(crow::App<>& app, AppState& state) {
+App& RegisterMCPRoutes(App& app, AppState& state) {
     CROW_ROUTE(app, "/mcp/capabilities").methods(crow::HTTPMethod::GET)
     ([](const crow::request&, crow::response& res) {
         json body = {

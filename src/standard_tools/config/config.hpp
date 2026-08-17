@@ -17,6 +17,9 @@ struct Config {
     std::string database_url;
     std::string cache_dir;
     std::string audit_dir;
+    // API-key auth for the REST server; fails closed when enabled without a key.
+    bool auth_enabled = true;
+    std::string api_key;
     PolygonConfig polygon;
 };
 

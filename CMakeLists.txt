@@ -282,6 +282,7 @@ set(UNIT_TEST_SOURCES
     tests/unit/marketdata/test_synthetic.cpp
     tests/unit/indicators/test_indicators.cpp
     tests/unit/audit/test_audit.cpp
+    tests/unit/api/test_auth.cpp
     tests/unit/agent/test_dispatcher.cpp
     tests/unit/metrics/test_metrics.cpp
     tests/unit/analysis/test_analysis.cpp

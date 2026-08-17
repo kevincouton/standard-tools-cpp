@@ -31,6 +31,13 @@ std::optional<std::string> GetEnv(const std::string& key) {
     return std::string(val);
 }
 
+bool ParseBool(const std::string& v) {
+    const std::string lower = ToLower(Trim(v));
+    if (lower == "1" || lower == "true" || lower == "yes" || lower == "on") return true;
+    if (lower == "0" || lower == "false" || lower == "no" || lower == "off") return false;
+    throw std::runtime_error("invalid boolean value: " + v);
+}
+
 void ApplyEnv(Config& cfg) {
     struct EnvMapping {
         const char* key;
@@ -44,6 +51,8 @@ void ApplyEnv(Config& cfg) {
         {"SQT_DATABASE_URL", [&](const std::string& v) { cfg.database_url = v; }},
         {"SQT_CACHE_DIR", [&](const std::string& v) { cfg.cache_dir = v; }},
         {"SQT_AUDIT_DIR", [&](const std::string& v) { cfg.audit_dir = v; }},
+        {"SQT_AUTH_ENABLED", [&](const std::string& v) { cfg.auth_enabled = ParseBool(v); }},
+        {"SQT_API_KEY", [&](const std::string& v) { cfg.api_key = v; }},
         {"SQT_POLYGON__API_KEY", [&](const std::string& v) { cfg.polygon.api_key = v; }},
     };
 
@@ -68,6 +77,8 @@ void ApplyToml(Config& cfg, const std::string& path) {
     if (auto v = tbl["database_url"].value<std::string>()) cfg.database_url = *v;
     if (auto v = tbl["cache_dir"].value<std::string>()) cfg.cache_dir = *v;
     if (auto v = tbl["audit_dir"].value<std::string>()) cfg.audit_dir = *v;
+    if (auto v = tbl["auth_enabled"].value<bool>()) cfg.auth_enabled = *v;
+    if (auto v = tbl["api_key"].value<std::string>()) cfg.api_key = *v;
     if (auto poly = tbl["polygon"].as_table()) {
         if (auto v = (*poly)["api_key"].value<std::string>()) cfg.polygon.api_key = *v;
     }

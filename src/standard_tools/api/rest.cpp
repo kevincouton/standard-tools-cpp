@@ -239,7 +239,7 @@ std::optional<std::uint64_t> ParseOptionalSeed(const json& body) {
 
 }  // namespace
 
-crow::App<>& RegisterRoutes(crow::App<>& app, AppState& state) {
+App& RegisterRoutes(App& app, AppState& state) {
     CROW_ROUTE(app, "/health")
     ([](const crow::request&, crow::response& res) {
         res.set_header("Content-Type", "application/json");

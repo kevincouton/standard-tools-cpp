@@ -3,6 +3,7 @@
 #include "standard_tools/agent/tool.hpp"
 #include "standard_tools/api/state.hpp"
 #include "standard_tools/audit/record.hpp"
+#include "standard_tools/core/uuid.hpp"
 
 #include <crow.h>
 #include <nlohmann/json.hpp>
@@ -53,7 +54,7 @@ inline void RecordAudit(
     if (!state.audit_writer) return;
 
     audit::DecisionRecord rec;
-    rec.request_id = request_id.empty() ? std::to_string(std::hash<std::string>{}(tool_name + input.dump())) : request_id;
+    rec.request_id = request_id.empty() ? core::GenerateUuid() : request_id;
     rec.tool_name = tool_name;
     rec.input = input;
     rec.output = output;

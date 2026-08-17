@@ -19,7 +19,7 @@ std::string RequestScheme(const crow::request& req) {
 
 }  // namespace
 
-crow::App<>& RegisterA2ARoutes(crow::App<>& app, AppState& state) {
+App& RegisterA2ARoutes(App& app, AppState& state) {
     CROW_ROUTE(app, "/a2a/agent.json").methods(crow::HTTPMethod::GET)
     ([](const crow::request& req, crow::response& res) {
         json card = {

@@ -1,6 +1,7 @@
 #include "standard_tools/agent/dispatcher.hpp"
 #include "standard_tools/analysis/calculator.hpp"
 #include "standard_tools/api/a2a.hpp"
+#include "standard_tools/api/auth.hpp"
 #include "standard_tools/api/mcp.hpp"
 #include "standard_tools/api/rest.hpp"
 #include "standard_tools/api/state.hpp"
@@ -71,9 +72,10 @@ std::pair<long, std::string> HttpPost(const std::string& url, const std::string&
 
 struct ServerFixture {
     using AppState = standard_tools::api::AppState;
+    using App = standard_tools::api::App;
 
     int port = 0;
-    std::shared_ptr<crow::App<>> app;
+    std::shared_ptr<App> app;
     std::shared_ptr<AppState> state;
     std::thread thread;
     std::atomic<bool> shutdown{false};
@@ -81,6 +83,7 @@ struct ServerFixture {
     ServerFixture() {
         using namespace standard_tools;
 
+        api::ConfigureAuth(false, "");
         auto cache = std::make_shared<marketdata::InMemoryCache>();
         auto market_svc = std::make_shared<marketdata::Service>("synthetic", cache);
         market_svc->Register(std::make_shared<marketdata::SyntheticProvider>());
@@ -103,7 +106,7 @@ struct ServerFixture {
             .screener = screener,
         });
 
-        app = std::make_shared<crow::App<>>();
+        app = std::make_shared<App>();
         api::RegisterRoutes(*app, *state);
         api::RegisterA2ARoutes(*app, *state);
         api::RegisterMCPRoutes(*app, *state);

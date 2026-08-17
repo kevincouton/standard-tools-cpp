@@ -1,6 +1,7 @@
 #include "standard_tools/agent/dispatcher.hpp"
 #include "standard_tools/analysis/calculator.hpp"
 #include "standard_tools/api/a2a.hpp"
+#include "standard_tools/api/auth.hpp"
 #include "standard_tools/api/mcp.hpp"
 #include "standard_tools/api/rest.hpp"
 #include "standard_tools/api/state.hpp"
@@ -76,6 +77,13 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
+    // Fail closed: refuse to start when auth is enabled without a key.
+    if (cfg.auth_enabled && cfg.api_key.empty()) {
+        std::cerr << "SQT_AUTH_ENABLED is true but SQT_API_KEY is not set; refusing to start\n";
+        return 1;
+    }
+    api::ConfigureAuth(cfg.auth_enabled, cfg.api_key);
+
     auto cache = std::make_shared<marketdata::InMemoryCache>();
     auto market_svc = std::make_shared<marketdata::Service>("synthetic", cache);
     market_svc->Register(std::make_shared<marketdata::SyntheticProvider>());
@@ -98,7 +106,7 @@ int main(int argc, char* argv[]) {
         .screener = screener,
     };
 
-    crow::App<> app;
+    api::App app;
     api::RegisterRoutes(app, state);
     api::RegisterA2ARoutes(app, state);
     api::RegisterMCPRoutes(app, state);
