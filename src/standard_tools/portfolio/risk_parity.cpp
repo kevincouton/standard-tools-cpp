@@ -138,30 +138,6 @@ PortfolioResult RiskParity(const RiskParityRequest& request) {
     const std::size_t n = request.returns.size();
     const std::size_t obs = request.returns[0].size();
 
-    std::vector<double> inv_vols(n);
-    for (std::size_t i = 0; i < n; ++i) {
-        const double m = Mean(request.returns[i]);
-        double sum_sq = 0.0;
-        for (double r : request.returns[i]) {
-            const double d = r - m;
-            sum_sq += d * d;
-        }
-        const double variance = sum_sq / (static_cast<double>(obs) - 1.0);
-        const double vol = std::sqrt(std::max(0.0, variance));
-        inv_vols[i] = vol > kDegeneracyEps ? 1.0 / vol : 0.0;
-    }
-
-    const double total = Sum(inv_vols);
-    if (total < kDegeneracyEps) {
-        throw core::DataQualityError{
-            "all assets have zero volatility; cannot compute risk-parity weights"};
-    }
-
-    std::vector<double> weights(n);
-    for (std::size_t i = 0; i < n; ++i) {
-        weights[i] = inv_vols[i] / total;
-    }
-
     std::vector<double> means(n);
     for (std::size_t i = 0; i < n; ++i) {
         means[i] = Mean(request.returns[i]);
@@ -173,6 +149,65 @@ PortfolioResult RiskParity(const RiskParityRequest& request) {
         }
     }
     const auto cov = SampleCovariance(centered);
+
+    double total_variance = 0.0;
+    for (std::size_t i = 0; i < n; ++i) {
+        total_variance += cov[i][i];
+    }
+    if (total_variance < kDegeneracyEps) {
+        throw core::DataQualityError{
+            "all assets have zero volatility; cannot compute risk-parity weights"};
+    }
+
+    // Equal-budget risk parity via a damped fixed-point iteration on risk
+    // contributions (same scheme as the Kotlin port's RiskParityOptimizer,
+    // with damping to avoid oscillation on highly correlated inputs):
+    //   rc_i = w_i * (cov * w)_i,  target_i = sum(rc) / n
+    //   w_i <- w_i * target_i / rc_i, then renormalize.
+    std::vector<double> weights(n, 1.0 / static_cast<double>(n));
+    constexpr int kMaxIterations = 1000;
+    constexpr double kConvergenceTol = 1e-10;
+    constexpr double kDamping = 0.5;
+    for (int iter = 0; iter < kMaxIterations; ++iter) {
+        std::vector<double> rc(n, 0.0);
+        for (std::size_t i = 0; i < n; ++i) {
+            double mrc = 0.0;
+            for (std::size_t j = 0; j < n; ++j) {
+                mrc += cov[i][j] * weights[j];
+            }
+            rc[i] = weights[i] * mrc;
+        }
+        const double total_rc = Sum(rc);
+        if (total_rc < kDegeneracyEps) {
+            break;
+        }
+        const double target = total_rc / static_cast<double>(n);
+
+        bool converged = true;
+        for (double r : rc) {
+            if (std::abs(r - target) >= kConvergenceTol) {
+                converged = false;
+                break;
+            }
+        }
+        if (converged) {
+            break;
+        }
+
+        std::vector<double> next(n);
+        for (std::size_t i = 0; i < n; ++i) {
+            next[i] = weights[i] + kDamping *
+                                      (weights[i] * target / std::max(rc[i], kDegeneracyEps) -
+                                       weights[i]);
+        }
+        const double next_total = Sum(next);
+        if (next_total < kDegeneracyEps) {
+            break;
+        }
+        for (std::size_t i = 0; i < n; ++i) {
+            weights[i] = next[i] / next_total;
+        }
+    }
 
     double expected_return = 0.0, volatility = 0.0, sharpe = 0.0;
     PortfolioMetrics(weights, means, cov, 0.0, expected_return, volatility, sharpe);

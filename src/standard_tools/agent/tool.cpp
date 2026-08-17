@@ -96,7 +96,7 @@ std::vector<ToolDefinition> ListTools() {
         },
         ToolDefinition{
             .name = ToolRiskParityPortfolio,
-            .description = "Run inverse-volatility risk-parity portfolio allocation.",
+            .description = "Run risk-parity portfolio allocation with equal per-asset risk contributions.",
             .parameters = json::parse(
                 R"({"type":"object","properties":{)"
                 R"("request":{"type":"object"}},)"

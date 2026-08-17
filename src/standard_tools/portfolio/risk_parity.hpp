@@ -7,7 +7,7 @@
 
 namespace standard_tools::portfolio {
 
-/// Request for inverse-volatility risk-parity allocation.
+/// Request for risk-parity allocation with equal per-asset risk budgets.
 struct RiskParityRequest {
     /// Historical return series, one row per asset.
     std::vector<std::vector<double>> returns;
@@ -16,12 +16,12 @@ struct RiskParityRequest {
     std::vector<std::string> labels;
 };
 
-/// Compute inverse-volatility risk-parity weights.
+/// Compute risk-parity weights via the full covariance matrix.
 ///
-/// The weight of each asset is proportional to the inverse of its sample
-/// volatility. Assets with lower volatility receive larger weights so that each
-/// asset contributes roughly equally to the portfolio's total volatility
-/// budget.
+/// Weights are chosen so that every asset contributes equally to total
+/// portfolio risk, i.e. w_i * (cov * w)_i is the same for all i. The solver
+/// uses a fixed-point iteration on risk contributions and therefore accounts
+/// for correlations, unlike plain inverse-volatility weighting.
 ///
 /// \throws InvalidCommandError for dimensional mismatches.
 /// \throws DataQualityError for empty/short/non-finite return series or zero

@@ -161,6 +161,31 @@ TEST_CASE("RiskParity produces valid inverse-volatility weights", "[portfolio]")
     REQUIRE(result.volatility >= 0.0);
 }
 
+TEST_CASE("RiskParity equalizes risk contributions under correlation", "[portfolio]") {
+    // Asset A is uncorrelated with B and C; B and C are identical series
+    // (correlation 1). All three have the same variance, so inverse-volatility
+    // weighting would give 1/3 each. True risk parity must account for the
+    // correlation: with cov = s*[[1,0,0],[0,1,1],[0,1,1]], equal risk
+    // contributions require a^2 = 2*b^2, i.e. w_A = 1/(1+sqrt(2)) ~ 0.41421
+    // and w_B = w_C ~ 0.29289.
+    RiskParityRequest req;
+    req.returns = {
+        {1.0, -1.0, 1.0, -1.0},
+        {1.0, 1.0, -1.0, -1.0},
+        {1.0, 1.0, -1.0, -1.0},
+    };
+    req.labels = {"a", "b", "c"};
+
+    const auto result = RiskParity(req);
+
+    REQUIRE(std::abs(SumWeights(result) - 1.0) <= kEpsilon);
+    const double want_a = 1.0 / (1.0 + std::sqrt(2.0));
+    const double want_b = (1.0 - want_a) / 2.0;
+    REQUIRE(result.weights.at("a") == Catch::Approx(want_a).margin(1e-3));
+    REQUIRE(result.weights.at("b") == Catch::Approx(want_b).margin(1e-3));
+    REQUIRE(result.weights.at("c") == Catch::Approx(want_b).margin(1e-3));
+}
+
 TEST_CASE("RiskParity rejects degenerate returns", "[portfolio]") {
     RiskParityRequest req;
     req.returns = {{1.0, 1.0, 1.0}, {1.0, 1.0, 1.0}};
