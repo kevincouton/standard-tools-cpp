@@ -29,7 +29,7 @@ This document compares the `standard-tools-cpp` port against the other Standard-
 | Market data provider port | ⚠️ synthetic only | ⚠️ interface / stub | ✅ YF, Polygon, Bloomberg stub | ✅ synthetic, YF, Polygon | ✅ YF + Moka cache |
 | Indicators | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Risk / return metrics | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Analysis (regression, cointegration, Hurst, PCA, correlation, options) | ⚠️ no multi-factor | ✅ library; ⚠️ only regression + options exposed | ✅ | ⚠️ no multi-factor | ⚠️ no multi-factor |
+| Analysis (regression, cointegration, Hurst, PCA, correlation, options) | ⚠️ no multi-factor | ✅ library; ⚠️ only regression + options exposed | ✅ | ✅ | ⚠️ no multi-factor |
 | Backtesting engine | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Walk-forward optimization | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Monte Carlo simulation | ✅ | ✅ | ✅ | ✅ | ✅ |
