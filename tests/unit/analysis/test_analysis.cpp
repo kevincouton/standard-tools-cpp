@@ -115,6 +115,30 @@ TEST_CASE("PCA returns deterministic explained variance ratios", "[analysis]") {
     REQUIRE(sum == Approx(1.0).margin(1e-12));
 }
 
+TEST_CASE("PCA extracts the shared factor of correlated series", "[analysis]") {
+    AnalysisCalculator calc;
+    Request req;
+    req.operation = operation::kPca;
+    req.returns_matrix = {
+        {1.0, 2.0, 3.0, 4.0, 5.0},
+        {1.0, 2.0, 3.0, 4.0, 5.0},
+    };
+    req.n_components = 2;
+
+    const auto result = std::get<PCAResult>(calc.Calculate(req));
+
+    // Perfectly correlated series: PC1 must capture all variance with
+    // equal-magnitude loadings; a variance-sorted one-hot stub cannot do this.
+    REQUIRE(result.explained_variance_ratio[0] == Approx(1.0).margin(1e-9));
+    REQUIRE(result.explained_variance_ratio[1] == Approx(0.0).margin(1e-9));
+    const double inv_sqrt2 = 1.0 / std::sqrt(2.0);
+    REQUIRE(std::abs(result.loadings[0][0]) == Approx(inv_sqrt2).margin(1e-9));
+    REQUIRE(std::abs(result.loadings[0][1]) == Approx(inv_sqrt2).margin(1e-9));
+    // Loadings form a unit vector.
+    const double norm = std::hypot(result.loadings[0][0], result.loadings[0][1]);
+    REQUIRE(norm == Approx(1.0).margin(1e-12));
+}
+
 TEST_CASE("PCA rejects invalid n_components", "[analysis]") {
     AnalysisCalculator calc;
     Request req;

@@ -31,7 +31,8 @@ struct HurstResult {
     std::string interpretation;
 };
 
-/// Result of a deterministic PCA stub.
+/// Result of principal component analysis via eigendecomposition of the
+/// sample covariance matrix.
 struct PCAResult {
     std::vector<std::string> labels;
     std::vector<double> explained_variance_ratio;

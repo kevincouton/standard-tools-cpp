@@ -148,8 +148,7 @@ double StandardScore(double value, const std::vector<double>& values) {
     return (value - m) / std;
 }
 
-double RescaledRange(const std::vector<double>& series, int lag) {
-    const int chunks = static_cast<int>(series.size()) / lag;
+double RescaledRange(const std::vector<double>& series, int lag) {    const int chunks = static_cast<int>(series.size()) / lag;
     if (chunks == 0) {
         return 0.0;
     }
@@ -202,6 +201,69 @@ std::string InterpretHurst(double exponent) {
         return "approximately random walk";
     }
     return "persistent/trending";
+}
+
+// Jacobi eigendecomposition for a real symmetric matrix.
+// Returns eigenvalues (diagonal of the rotated matrix) and eigenvectors as
+// columns of the second element.
+std::pair<std::vector<double>, std::vector<std::vector<double>>> JacobiEigen(
+    std::vector<std::vector<double>> a) {
+    const std::size_t n = a.size();
+    std::vector<std::vector<double>> v(n, std::vector<double>(n, 0.0));
+    for (std::size_t i = 0; i < n; ++i) {
+        v[i][i] = 1.0;
+    }
+
+    constexpr int kMaxSweeps = 100;
+    for (int sweep = 0; sweep < kMaxSweeps; ++sweep) {
+        double off = 0.0;
+        for (std::size_t p = 0; p < n; ++p) {
+            for (std::size_t q = p + 1; q < n; ++q) {
+                off += a[p][q] * a[p][q];
+            }
+        }
+        if (off < 1e-30) {
+            break;
+        }
+
+        for (std::size_t p = 0; p < n; ++p) {
+            for (std::size_t q = p + 1; q < n; ++q) {
+                if (std::abs(a[p][q]) < 1e-300) {
+                    continue;
+                }
+                const double theta = (a[q][q] - a[p][p]) / (2.0 * a[p][q]);
+                const double t = (theta >= 0.0 ? 1.0 : -1.0) /
+                                 (std::abs(theta) + std::sqrt(theta * theta + 1.0));
+                const double c = 1.0 / std::sqrt(t * t + 1.0);
+                const double s = t * c;
+
+                for (std::size_t k = 0; k < n; ++k) {
+                    const double akp = a[k][p];
+                    const double akq = a[k][q];
+                    a[k][p] = c * akp - s * akq;
+                    a[k][q] = s * akp + c * akq;
+                }
+                for (std::size_t k = 0; k < n; ++k) {
+                    const double apk = a[p][k];
+                    const double aqk = a[q][k];
+                    a[p][k] = c * apk - s * aqk;
+                    a[q][k] = s * apk + c * aqk;
+                }
+                for (std::size_t k = 0; k < n; ++k) {
+                    const double vkp = v[k][p];
+                    const double vkq = v[k][q];
+                    v[k][p] = c * vkp - s * vkq;
+                    v[k][q] = s * vkp + c * vkq;
+                }
+            }
+        }
+    }
+
+    std::vector<double> eigenvalues(n);
+    for (std::size_t i = 0; i < n; ++i) {
+        eigenvalues[i] = a[i][i];
+    }
+    return {eigenvalues, v};
 }
 
 }  // namespace
@@ -439,27 +501,39 @@ PCAResult AnalysisCalculator::Pca(const Request& request) const {
 
     const auto n_vars = returns_matrix.size();
     std::vector<std::vector<double>> centered(n_vars);
-    std::vector<double> variances(n_vars);
     for (std::size_t i = 0; i < n_vars; ++i) {
         const double m = Mean(returns_matrix[i]);
         centered[i].resize(n_obs);
-        double sum = 0.0;
         for (std::size_t t = 0; t < n_obs; ++t) {
-            const double d = returns_matrix[i][t] - m;
-            centered[i][t] = d;
-            sum += d * d;
+            centered[i][t] = returns_matrix[i][t] - m;
         }
-        variances[i] = sum / static_cast<double>(n_obs - 1);
     }
 
+    // Sample covariance matrix of the centered series.
+    const double scale = 1.0 / (static_cast<double>(n_obs) - 1.0);
+    std::vector<std::vector<double>> cov(n_vars, std::vector<double>(n_vars, 0.0));
+    for (std::size_t i = 0; i < n_vars; ++i) {
+        for (std::size_t j = i; j < n_vars; ++j) {
+            double sum = 0.0;
+            for (std::size_t t = 0; t < n_obs; ++t) {
+                sum += centered[i][t] * centered[j][t];
+            }
+            cov[i][j] = sum * scale;
+            cov[j][i] = cov[i][j];
+        }
+    }
+
+    // Eigendecomposition of the covariance matrix; eigenvalues sorted
+    // descending, eigenvectors as columns.
+    auto [eigenvalues, eigenvectors] = JacobiEigen(std::move(cov));
     std::vector<std::size_t> indices(n_vars);
     std::iota(indices.begin(), indices.end(), 0);
     std::sort(indices.begin(), indices.end(), [&](std::size_t a, std::size_t b) {
-        return variances[a] > variances[b];
+        return eigenvalues[a] > eigenvalues[b];
     });
 
     double total_variance = 0.0;
-    for (double v : variances) {
+    for (double v : eigenvalues) {
         total_variance += v;
     }
 
@@ -475,13 +549,39 @@ PCAResult AnalysisCalculator::Pca(const Request& request) const {
 
     for (int k = 0; k < n_components; ++k) {
         const std::size_t idx = indices[static_cast<std::size_t>(k)];
+        const double lambda = std::max(0.0, eigenvalues[idx]);
         if (total_variance > 0.0) {
-            result.explained_variance_ratio[static_cast<std::size_t>(k)] = variances[idx] / total_variance;
+            result.explained_variance_ratio[static_cast<std::size_t>(k)] = lambda / total_variance;
         }
-        std::vector<double> loading(n_vars, 0.0);
-        loading[idx] = 1.0;
-        result.loadings[static_cast<std::size_t>(k)] = std::move(loading);
-        result.factor_returns[static_cast<std::size_t>(k)] = centered[idx];
+
+        std::vector<double> loading(n_vars);
+        for (std::size_t i = 0; i < n_vars; ++i) {
+            loading[i] = eigenvectors[i][idx];
+        }
+        // Deterministic sign convention: the largest-magnitude component is
+        // positive.
+        std::size_t pivot = 0;
+        for (std::size_t i = 1; i < n_vars; ++i) {
+            if (std::abs(loading[i]) > std::abs(loading[pivot])) {
+                pivot = i;
+            }
+        }
+        if (loading[pivot] < 0.0) {
+            for (double& v : loading) {
+                v = -v;
+            }
+        }
+        result.loadings[static_cast<std::size_t>(k)] = loading;
+
+        std::vector<double> factor(n_obs, 0.0);
+        for (std::size_t t = 0; t < n_obs; ++t) {
+            double acc = 0.0;
+            for (std::size_t i = 0; i < n_vars; ++i) {
+                acc += loading[i] * centered[i][t];
+            }
+            factor[t] = acc;
+        }
+        result.factor_returns[static_cast<std::size_t>(k)] = std::move(factor);
     }
 
     return result;
