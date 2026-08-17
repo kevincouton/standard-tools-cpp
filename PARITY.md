@@ -50,7 +50,7 @@ This document compares the `standard-tools-cpp` port against the other Standard-
 | TLS termination | ❌ | ❌ | ❌ | ❌ | ❌ |
 | Audit provenance (git commit / version / seed) | ✅ all three | ⚠️ schema only | ⚠️ commit + version | ✅ all three | ❌ none recorded |
 | Replay read-only / side-effect blocklist | ⚠️ read-only fetch, no re-execution | ❌ not implemented | ✅ blocklist | ❌ re-executes | ⚠️ blocklist, CLI placeholder |
-| Persistent audit storage | ✅ PostgreSQL + memory | ❌ in-memory only | ✅ PostgreSQL | ✅ PostgreSQL + memory | ✅ PostgreSQL + memory |
+| Persistent audit storage | ✅ PostgreSQL + memory | ✅ SQLite + memory | ✅ PostgreSQL | ✅ PostgreSQL + memory | ✅ PostgreSQL + memory |
 
 ## Operational hardening
 
@@ -73,11 +73,11 @@ Validation below was performed locally with `nektos/act` on `linux/arm64` (Podma
 
 | Port | Status | Notes |
 |---|---|---|
-| C++ | ⚠️ pending | `quality` job is running; old `rm -rf /var/lib/apt/lists/*` issue already removed |
+| C++ | ✅ green | `act push --job quality` passes (build + ctest) |
 | C# | ✅ green | `act push --job build-and-test` passes |
 | Kotlin | ✅ green | `act push --job unit-tests` passes; native build not validated locally |
 | Go | ✅ green | `act push --job quality` passes |
-| Rust | ⚠️ pending | `quality` job passes; `test` job fixed to skip artifact upload under `env.ACT` and is re-running |
+| Rust | ✅ green | `act push --job test` passes; artifact upload skipped under `env.ACT` |
 
 ## Known limitations relevant to this port
 
@@ -85,7 +85,7 @@ Validation below was performed locally with `nektos/act` on `linux/arm64` (Podma
 - A2A and MCP are skeleton HTTP endpoints, not full protocol implementations.
 - No live market-data provider; only synthetic data is available.
 - No HTTP/gRPC request timeouts or structured logging.
-- CI fails in the dependency-install step due to missing permissions.
+- `act push --job quality` passes locally (build + ctest); GitHub-hosted runner status is tracked separately.
 
 ## Outstanding P0/P1 gaps (deferred)
 
