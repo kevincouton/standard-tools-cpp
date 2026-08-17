@@ -4,6 +4,8 @@
 # endpoint.
 set -euo pipefail
 
+export SQT_API_KEY="${SQT_API_KEY:-smoke-test-api-key}"
+
 cd "$(dirname "$0")/.."
 
 command -v curl >/dev/null 2>&1 || { echo "curl is required for smoke tests" >&2; exit 1; }
@@ -61,7 +63,7 @@ fi
 echo "Image metadata OK"
 
 "${ENGINE_CMD[@]}" rm -f "$container_name" >/dev/null 2>&1 || true
-"${ENGINE_CMD[@]}" run -d -P --name "$container_name" "$IMAGE_TAG"
+"${ENGINE_CMD[@]}" run -d -P -e "SQT_API_KEY=$SQT_API_KEY" --name "$container_name" "$IMAGE_TAG"
 
 host_port=$("${ENGINE_CMD[@]}" port "$container_name" 8080/tcp | head -n1 | awk -F: '{print $NF}')
 grpc_port=$("${ENGINE_CMD[@]}" port "$container_name" 50051/tcp | head -n1 | awk -F: '{print $NF}')
