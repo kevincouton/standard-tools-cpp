@@ -35,7 +35,7 @@ This document compares the `standard-tools-cpp` port against the other Standard-
 | Monte Carlo simulation | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Robustness / stress testing | ❌ | ❌ | ✅ | ❌ | ✅ |
 | Portfolio mean-variance | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Portfolio risk parity | ✅ equal-risk-contribution | ⚠️ inverse-vol | ✅ equal-risk-contribution | ⚠️ inverse-vol | ⚠️ inverse-vol |
+| Portfolio risk parity | ✅ equal-risk-contribution | ⚠️ inverse-vol | ✅ equal-risk-contribution | ✅ equal-risk-contribution | ✅ equal-risk-contribution |
 | Black-Litterman | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Screener | ⚠️ hardcoded provider | ⚠️ hardcoded provider | ⚠️ hardcoded provider | ⚠️ hardcoded provider | ⚠️ hardcoded provider |
 | Hash-chained audit | ✅ | ✅ | ✅ | ✅ | ✅ |
