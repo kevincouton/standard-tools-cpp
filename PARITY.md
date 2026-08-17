@@ -69,13 +69,15 @@ This document compares the `standard-tools-cpp` port against the other Standard-
 
 ## CI status
 
+Validation below was performed locally with `nektos/act` on `linux/arm64` (Podman) using the workflow job(s) that exercise the core build and tests.
+
 | Port | Status | Notes |
 |---|---|---|
-| C++ | ❌ red | `rm -rf /var/lib/apt/lists/*` lacks permissions in GitHub Actions runner |
-| C# | ✅ green | `dotnet test` passes (88 tests) |
-| Kotlin | ✅ green | unit / integration / e2e green; native build not validated locally |
-| Go | ✅ green | `go test ./...` and image builds green locally |
-| Rust | ❌ red | `cargo fmt` not installed in mise toolchain; `set -o pipefail` fails under dash |
+| C++ | ⚠️ pending | `quality` job is running; old `rm -rf /var/lib/apt/lists/*` issue already removed |
+| C# | ✅ green | `act push --job build-and-test` passes |
+| Kotlin | ✅ green | `act push --job unit-tests` passes; native build not validated locally |
+| Go | ✅ green | `act push --job quality` passes |
+| Rust | ⚠️ pending | `quality` job passes; `test` job fixed to skip artifact upload under `env.ACT` and is re-running |
 
 ## Known limitations relevant to this port
 
@@ -85,9 +87,20 @@ This document compares the `standard-tools-cpp` port against the other Standard-
 - No HTTP/gRPC request timeouts or structured logging.
 - CI fails in the dependency-install step due to missing permissions.
 
+## Outstanding P0/P1 gaps (deferred)
+
+The following items were identified in the staff-engine audit and are explicitly documented rather than hidden behind false claims:
+
+1. **TLS termination** — not implemented in any port. Deploy behind a reverse proxy that terminates TLS.
+2. **Structured logging / request tracing** — no request-id propagation or structured log output.
+3. **Full A2A/MCP semantics** — A2A and MCP are skeleton HTTP endpoints, not full protocol implementations.
+4. **gRPC auth interceptor** — gRPC exposes only `grpc.health.v1.Health` and has no API-key interceptor.
+5. **HTTP/gRPC request timeouts** — not configured; long-running requests can hang indefinitely.
+6. **Live market-data adapter** — only synthetic market data is available; the `SQT_POLYGON__API_KEY` config key is not consumed by a live provider.
+7. **Dependency scanning** — add Dependabot or a C++ equivalent (e.g., OWASP dependency-check) to CI.
+
 ## Recommendations before a release tag
 
-1. Fix the CI dependency-install step (use `sudo` or remove the `rm -rf` line).
-2. Add a gRPC auth interceptor and request timeouts.
-3. Implement a live market-data adapter or remove the `SQT_POLYGON__API_KEY` config key.
-4. Add dependency scanning (Dependabot / `cargo-audit` equivalent for C++) to CI.
+1. Add a gRPC auth interceptor and request timeouts.
+2. Implement a live market-data adapter or remove the `SQT_POLYGON__API_KEY` config key.
+3. Add dependency scanning to CI.
