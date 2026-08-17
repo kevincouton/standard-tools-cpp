@@ -6,7 +6,6 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-command -v cmake >/dev/null 2>&1 || { echo "cmake is required to build the gRPC health checker" >&2; exit 1; }
 command -v curl >/dev/null 2>&1 || { echo "curl is required for smoke tests" >&2; exit 1; }
 
 read -ra ENGINE_CMD <<< "${ENGINE:-podman}"
@@ -20,16 +19,12 @@ fi
 
 container_name="stcpp-smoke-${IMAGE_TAG//[:\/]/-}"
 
-# Build the static gRPC health checker.
-GRPC_HEALTH_BIN="./build/grpc_health_check"
-if [ ! -x "$GRPC_HEALTH_BIN" ]; then
-  cmake -S . -B build -DSTANDARD_TOOLS_BUILD_INTEGRATION_TESTS=OFF -DSTANDARD_TOOLS_BUILD_E2E_TESTS=OFF >/dev/null 2>&1
-  cmake --build build --target grpc_health_check --parallel $(nproc) >/dev/null 2>&1
-fi
-
+# The gRPC health checker is shipped inside the image at /usr/local/bin/grpc_health_check;
+# we invoke it via the container engine so the host does not need the C++ build toolchain.
 cleanup() {
   local exit_code=$?
   if [ "$exit_code" -ne 0 ]; then
+    echo "Smoke test failed with exit code $exit_code; dumping container logs:" >&2
     "${ENGINE_CMD[@]}" logs "$container_name" >&2 || true
   fi
   "${ENGINE_CMD[@]}" rm -f "$container_name" >/dev/null 2>&1 || true
@@ -87,7 +82,7 @@ fi
 
 grpc_success=0
 for i in {1..10}; do
-  if "$GRPC_HEALTH_BIN" "localhost:${grpc_port}"; then
+  if "${ENGINE_CMD[@]}" exec "$container_name" /usr/local/bin/grpc_health_check "127.0.0.1:50051"; then
     grpc_success=1
     break
   fi
