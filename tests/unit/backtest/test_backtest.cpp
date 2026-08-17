@@ -50,7 +50,65 @@ std::vector<core::OHLCV> MakeConstantSeries(std::size_t n, double price) {
     return series;
 }
 
+class AlwaysShortStrategy : public backtest::Strategy {
+public:
+    std::string Name() const override { return "always_short"; }
+
+    std::vector<backtest::SignalResult> Signals(
+        const std::vector<core::OHLCV>& series,
+        const std::unordered_map<std::string, double>&) const override {
+        std::vector<backtest::SignalResult> out;
+        out.reserve(series.size());
+        for (const auto& bar : series) {
+            out.push_back(backtest::SignalResult{.date = bar.date, .signal = backtest::Signal::Sell});
+        }
+        return out;
+    }
+};
+
 }  // namespace
+
+TEST_CASE("Short position equity stays positive while open", "[backtest]") {
+    // Rising series: the strategy shorts at bar 1 open (101) and stays short
+    // while the price climbs to 110. With correct short accounting the equity
+    // must remain positive for the whole run.
+    auto series = MakeRisingSeries(10, 100.0, 1.0);
+    backtest::BacktestConfig config;
+    config.initial_capital = 100'000.0;
+    config.commission_rate = 0.0;
+
+    backtest::BacktestEngine engine(std::make_unique<AlwaysShortStrategy>(), config);
+    auto result = engine.Run(series, {});
+
+    REQUIRE(!result.equity_curve.empty());
+    for (const auto& point : result.equity_curve) {
+        REQUIRE(point.equity > 0.0);
+    }
+    REQUIRE(result.trades.size() == 1);
+    REQUIRE(result.trades[0].side == backtest::TradeSide::Short);
+}
+
+TEST_CASE("Short sale proceeds are credited and debited exactly once", "[backtest]") {
+    // Falling series: bar 0 open=100/close=99, so the short executes at bar 1
+    // open (99) and the engine closes it at the last close (90). Zero
+    // commission. Expected final equity:
+    //   initial + quantity * (entry - exit) = 100k + (100k/99) * 9.
+    auto series = MakeRisingSeries(10, 100.0, -1.0);
+    backtest::BacktestConfig config;
+    config.initial_capital = 100'000.0;
+    config.commission_rate = 0.0;
+
+    backtest::BacktestEngine engine(std::make_unique<AlwaysShortStrategy>(), config);
+    auto result = engine.Run(series, {});
+
+    const double quantity = 100'000.0 / 99.0;
+    REQUIRE(result.trades.size() == 1);
+    REQUIRE(result.trades[0].entry_price == Approx(99.0));
+    REQUIRE(result.trades[0].exit_price == Approx(90.0));
+    REQUIRE(result.trades[0].quantity == Approx(quantity));
+    REQUIRE(result.trades[0].pnl == Approx(quantity * 9.0));
+    REQUIRE(result.final_equity == Approx(100'000.0 + quantity * 9.0).epsilon(1e-9));
+}
 
 TEST_CASE("BuyAndHold total return", "[backtest]") {
     auto series = MakeRisingSeries(10, 100.0, 1.0);

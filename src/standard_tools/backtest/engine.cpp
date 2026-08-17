@@ -41,13 +41,16 @@ std::pair<Position, double> OpenShort(
         quantity = cash / (price * (1.0 + commission));
     }
     double comm = quantity * price * commission;
+    // Short sale proceeds are credited to cash; the borrowed shares are a
+    // liability tracked by PositionMarketValue, so cash alone can exceed the
+    // account equity while the position is open.
     return {
         Position{
             .side = TradeSide::Short,
             .entry_price = price,
             .quantity = quantity,
             .entry_date = date},
-        cash - comm};
+        cash + quantity * price - comm};
 }
 
 std::pair<Trade, double> ClosePosition(
@@ -64,7 +67,9 @@ std::pair<Trade, double> ClosePosition(
             break;
         case TradeSide::Short:
             pnl = pos.quantity * (pos.entry_price - price) - entry_comm - exit_comm;
-            new_cash = cash + pos.quantity * pos.entry_price - pos.quantity * price - exit_comm;
+            // Entry proceeds were already credited at open; closing only pays
+            // the share repurchase cost and the exit commission.
+            new_cash = cash - pos.quantity * price - exit_comm;
             break;
     }
 
